@@ -11,9 +11,11 @@ import (
 )
 
 var opts struct {
-	Bind           string `short:"b" long:"bind" env:"BIND" default:"localhost:5005" description:"address:port to listen"`
-	SlackAuthToken string `long:"slack-token" env:"SLACK_AUTHTOKEN"`
-	SentryDSN      string `long:"sentry-dsn" env:"SENTRY_DSN"`
+	Bind              string `short:"b" long:"bind" env:"BIND" default:"localhost:5005" description:"address:port to listen"`
+	SlackAuthToken    string `long:"slack-token" env:"SLACK_AUTHTOKEN"`
+	SlackClientID     string `long:"slack-client-id" env:"SLACK_CLIENT_ID"`
+	SlackClientSecret string `long:"slack-client-secret" env:"SLACK_CLIENT_SECRET"`
+	SentryDSN         string `long:"sentry-dsn" env:"SENTRY_DSN"`
 }
 
 func main() {
@@ -25,7 +27,12 @@ func main() {
 	sentry.Init(sentry.ClientOptions{Dsn: opts.SentryDSN})
 	defer sentry.Flush(time.Second * 5)
 
-	slackWebhookProcessor := slack.NewWebhookProcessor(slack.NewSlack(opts.SlackAuthToken))
+	_slack := slack.NewSlack(
+		opts.SlackAuthToken,
+		opts.SlackClientID,
+		opts.SlackClientSecret,
+	)
+	slackWebhookProcessor := slack.NewWebhookProcessor(_slack)
 	srv := rest_api.NewRestAPIServer(opts.Bind, slackWebhookProcessor)
 	srv.Run()
 }

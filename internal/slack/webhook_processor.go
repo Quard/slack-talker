@@ -9,11 +9,11 @@ import (
 )
 
 type WebhookProcessor struct {
-	slack Slack
+	Slack Slack
 }
 
 func NewWebhookProcessor(_slack Slack) WebhookProcessor {
-	return WebhookProcessor{slack: _slack}
+	return WebhookProcessor{Slack: _slack}
 }
 
 func (p WebhookProcessor) Process(w http.ResponseWriter, r *http.Request) {
