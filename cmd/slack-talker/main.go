@@ -4,6 +4,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/Quard/slack-talker/internal/authority"
+	"github.com/Quard/slack-talker/internal/poindexter"
 	"github.com/Quard/slack-talker/internal/rest_api"
 	"github.com/Quard/slack-talker/internal/slack"
 	"github.com/getsentry/sentry-go"
@@ -12,6 +14,8 @@ import (
 
 var opts struct {
 	Bind              string `short:"b" long:"bind" env:"BIND" default:"localhost:5005" description:"address:port to listen"`
+	AuthorityURI      string `long:"authority-uri" env:"AUTHORITY_URI"`
+	PoindexterURI     string `long:"poindexter-uri" env:"POINDEXTER_URI"`
 	SlackAuthToken    string `long:"slack-token" env:"SLACK_AUTHTOKEN"`
 	SlackClientID     string `long:"slack-client-id" env:"SLACK_CLIENT_ID"`
 	SlackClientSecret string `long:"slack-client-secret" env:"SLACK_CLIENT_SECRET"`
@@ -32,7 +36,14 @@ func main() {
 		opts.SlackClientID,
 		opts.SlackClientSecret,
 	)
+	poindexterService := poindexter.NewPoindexter(opts.PoindexterURI)
+	auhtorityService := authority.NewAuthority(opts.AuthorityURI)
 	slackWebhookProcessor := slack.NewWebhookProcessor(_slack)
-	srv := rest_api.NewRestAPIServer(opts.Bind, slackWebhookProcessor)
+	srv := rest_api.NewRestAPIServer(
+		opts.Bind,
+		slackWebhookProcessor,
+		auhtorityService,
+		poindexterService,
+	)
 	srv.Run()
 }

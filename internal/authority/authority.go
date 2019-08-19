@@ -8,8 +8,16 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
-func GetUserByAuthToken() (*User, error) {
-	conn, errConn := grpc.Dial("localhost:5001", grpc.WithInsecure())
+type Authority struct {
+	uri string
+}
+
+func NewAuthority(uri string) Authority {
+	return Authority{uri: uri}
+}
+
+func (a Authority) GetUserByAuthToken() (*User, error) {
+	conn, errConn := grpc.Dial(a.uri, grpc.WithInsecure())
 	if errConn != nil {
 		sentry.CaptureException(errConn)
 		return nil, errConn
@@ -29,13 +37,29 @@ func GetUserByAuthToken() (*User, error) {
 	return user, nil
 }
 
-type UserProp struct {
-	Name  string
-	Value string
+func (a Authority) GetUserBySlackID(slackID string) (*User, error) {
+	conn, errConn := grpc.Dial(a.uri, grpc.WithInsecure())
+	if errConn != nil {
+		sentry.CaptureException(errConn)
+		return nil, errConn
+	}
+	defer conn.Close()
+
+	cl := NewInternalAPIClient(conn)
+	user, err := cl.GetUserByProp(
+		context.Background(),
+		&UserProp{Name: "slack-user-id", Value: slackID},
+	)
+	if err != nil {
+		sentry.CaptureException(err)
+		return nil, err
+	}
+
+	return user, nil
 }
 
-func SetUserProps(authToken string, props []UserProp) error {
-	conn, errConn := grpc.Dial("localhost:5001", grpc.WithInsecure())
+func (a Authority) SetUserProps(authToken string, props []UserProp) error {
+	conn, errConn := grpc.Dial(a.uri, grpc.WithInsecure())
 	if errConn != nil {
 		sentry.CaptureException(errConn)
 		return errConn
@@ -45,10 +69,10 @@ func SetUserProps(authToken string, props []UserProp) error {
 	cl := NewInternalAPIClient(conn)
 	userProps := &UserProps{
 		User:  &UserProps_AuthToken{AuthToken: authToken},
-		Props: []*UserProps_Prop{},
+		Props: []*UserProp{},
 	}
 	for _, prop := range props {
-		userProp := &UserProps_Prop{Name: prop.Name, Value: prop.Value}
+		userProp := &UserProp{Name: prop.Name, Value: prop.Value}
 		userProps.Props = append(userProps.Props, userProp)
 	}
 	intError, err := cl.SetUserProps(context.Background(), userProps)

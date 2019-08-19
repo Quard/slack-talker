@@ -44,7 +44,7 @@ func (srv RestAPIServer) slackOAuth2Code(w http.ResponseWriter, r *http.Request)
 	if errCookie != nil {
 		responseError(w, r, errors.New("unauthorized user"))
 	}
-	err = authority.SetUserProps(
+	err = srv.authority.SetUserProps(
 		authToken.Value,
 		[]authority.UserProp{
 			{Name: "slack-access-token", Value: respData.AccessToken},
