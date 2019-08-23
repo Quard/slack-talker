@@ -12,12 +12,11 @@ import (
 	"github.com/Quard/slack-talker/internal/poindexter"
 )
 
-func (srv RestAPIServer) slackCommand(w http.ResponseWriter, r *http.Request) {
+func (srv RestAPIServer) slackRLCommand(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Println(r.PostForm)
 	fields := strings.Fields(r.PostFormValue("text"))
 
 	user, authErr := srv.authority.GetUserBySlackID(r.PostFormValue("user_id"))
@@ -29,15 +28,15 @@ func (srv RestAPIServer) slackCommand(w http.ResponseWriter, r *http.Request) {
 
 	switch strings.ToLower(fields[0]) {
 	case "add":
-		srv.slackCommendReadingListAdd(w, user, fields[1])
+		srv.slackRLCommandAdd(w, user, fields[1])
 	case "list":
-		srv.slackCommandReadingListList(w, user)
+		srv.slackRLCommandList(w, user)
 	case "read":
-		srv.slackCommandReadingListMarkAsRead(w, user, fields[1])
+		srv.slackRLCommandMarkAsRead(w, user, fields[1])
 	}
 }
 
-func (srv RestAPIServer) slackCommendReadingListAdd(w http.ResponseWriter, user *authority.User, url string) {
+func (srv RestAPIServer) slackRLCommandAdd(w http.ResponseWriter, user *authority.User, url string) {
 	record, err := srv.poindexter.AddReadingListRecord(user, url)
 	if err != nil {
 		log.Println("ERR", err)
@@ -69,7 +68,7 @@ type readinglistRecordsList struct {
 	Fields    []readinglistRecordsField  `json:"fields"`
 }
 
-func (srv RestAPIServer) slackCommandReadingListList(w http.ResponseWriter, user *authority.User) {
+func (srv RestAPIServer) slackRLCommandList(w http.ResponseWriter, user *authority.User) {
 	ch := make(chan *poindexter.ReadingListRecord)
 	err := srv.poindexter.ListReadingListRecord(user, ch)
 	if err != nil {
@@ -120,7 +119,7 @@ func (srv RestAPIServer) slackCommandReadingListList(w http.ResponseWriter, user
 	)
 }
 
-func (srv RestAPIServer) slackCommandReadingListMarkAsRead(w http.ResponseWriter, user *authority.User, ID string) {
+func (srv RestAPIServer) slackRLCommandMarkAsRead(w http.ResponseWriter, user *authority.User, ID string) {
 	record, err := srv.poindexter.MarkRecordAsRead(user, ID)
 	if err != nil {
 		w.Write([]byte("unable to update record"))

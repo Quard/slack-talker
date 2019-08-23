@@ -11,6 +11,7 @@ import (
 	"github.com/Quard/slack-talker/internal/authority"
 	"github.com/Quard/slack-talker/internal/poindexter"
 	"github.com/Quard/slack-talker/internal/slack"
+	"github.com/Quard/slack-talker/internal/timekeeper_rpc"
 )
 
 type Opts struct {
@@ -22,15 +23,23 @@ type RestAPIServer struct {
 	slackWebhookProcessor slack.WebhookProcessor
 	authority             authority.Authority
 	poindexter            poindexter.Poindexter
+	timekeeper            timekeeper_rpc.TimeKeeper
 }
 
-func NewRestAPIServer(bind string, slackWebhook slack.WebhookProcessor, authoritySerive authority.Authority, poindexterService poindexter.Poindexter) RestAPIServer {
+func NewRestAPIServer(
+	bind string,
+	slackWebhook slack.WebhookProcessor,
+	authoritySerive authority.Authority,
+	poindexterService poindexter.Poindexter,
+	timekeeperService timekeeper_rpc.TimeKeeper,
+) RestAPIServer {
 	opts := Opts{bind: bind}
 	return RestAPIServer{
 		opts:                  opts,
 		slackWebhookProcessor: slackWebhook,
 		authority:             authoritySerive,
 		poindexter:            poindexterService,
+		timekeeper:            timekeeperService,
 	}
 }
 
@@ -48,7 +57,8 @@ func (srv RestAPIServer) getRouter() chi.Router {
 	router.Route("/api/v1/slack", func(r chi.Router) {
 		r.Get("/auth/code/", srv.slackOAuth2Code)
 		r.Get("/auth/", srv.slackOAuth2Authorize)
-		r.Post("/cmd/", srv.slackCommand)
+		r.Post("/cmd/rl/", srv.slackRLCommand)
+		r.Post("/cmd/tm/", srv.slackTMCommand)
 		r.Post("/", srv.slackWebhookProcessor.Process)
 
 	})
